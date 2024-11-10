@@ -1,3 +1,5 @@
+from datetime import timedelta
+import platform
 from bingo_functions import *
 import smtplib
 import tkinter as tk
@@ -23,6 +25,7 @@ if __name__ == "__main__":
     wish()
     while True:
         query = takecommand().lower()
+
 
 
 
@@ -231,7 +234,7 @@ if __name__ == "__main__":
             speak("Would you like to attach any files? Type 'yes' or 'no'.")
             attach_files = takecommand().lower()
 
-            # Get file paths directly from user input if they want to attach files
+
             if "yes" in attach_files:
                 file_paths = input(
                     "Enter the file paths separated by commas (e.g., /path/to/file1, /path/to/file2): ").split(',')
@@ -316,7 +319,7 @@ if __name__ == "__main__":
             os.system("pmset sleepnow")
 
         elif "your name" in query:
-            speak("its BINGO which stands for binary intellegance graphical neural operations")
+            speak("its bingo which stands for binary intellegance graphical neural operations")
 
         elif "switch the tab" in query:
             open_apps = subprocess.run(["osascript", "-e",
@@ -378,10 +381,78 @@ if __name__ == "__main__":
 
         elif "where i am" in query or "where we are" in query:
             location()
+
         elif "check insta id" in query:
             check_insta_id()
         elif "screenshot" in query:
             take_screenshot()
+        elif "summarize file" in query or "summarize document" in query:
+            speak("Please provide the file path.")
+            file_path = input("Enter the file path to summarize: ").strip()
+            if os.path.exists(file_path):
+                try:
+                    analysis_results = analyze_file(file_path)
+                    speak("Here is the summary of the document.")
+                    if 'summary' in analysis_results:
+                        speak(analysis_results['summary'])
+                    else:
+                        speak("This document doesn't support a detailed summary. Here is a quick overview.")
+                        speak(analysis_results['summary'])
+                except Exception as e:
+                    speak("Sorry, I couldn't process the file.")
+                    print(f"Error: {e}")
+            else:
+                speak("File not found. Please check the file path and try again.")
+
+        elif "create folder" in query:
+            speak("Please provide a name for the folder.")
+            folder_name = takecommand().lower()
+            if folder_name != "none":
+                try:
+                    os.makedirs(folder_name, exist_ok=True)
+                    speak(f"Folder named {folder_name} has been created.")
+                except Exception as e:
+                    speak(f"Sorry, I couldn't create the folder. Error: {e}")
+            else:
+                speak("Could not understand the folder name. Please try again.")
+
+            # Create a file
+        elif "create file" in query:
+            speak("Please provide a name and extension for the file, like 'notes dot txt'.")
+            file_name = takecommand().lower()
+            if file_name != "none":
+                try:
+                    with open(file_name, 'w') as file:
+                        file.write("")  # Creates an empty file
+                    speak(f"File named {file_name} has been created.")
+                except Exception as e:
+                    speak(f"Sorry, I couldn't create the file. Error: {e}")
+            else:
+                speak("Could not understand the file name. Please try again.")
+
+            # Hide files in the current directory
+        elif "hide files" in query or "make files invisible" in query:
+            try:
+                os_name = platform.system()
+                if os_name == "Darwin" or os_name == "Linux":  # macOS or Linux
+                    os.system("defaults write com.apple.finder AppleShowAllFiles -bool false; killall Finder")
+                elif os_name == "Windows":
+                    os.system('attrib +h *.* /s /d')  # Hides all files and folders in the directory
+                speak("Files have been hidden.")
+            except Exception as e:
+                speak(f"Sorry, I couldn't hide the files. Error: {e}")
+
+            # Unhide files in the current directory
+        elif "unhide files" in query or "make files visible" in query:
+            try:
+                os_name = platform.system()
+                if os_name == "Darwin" or os_name == "Linux":  # macOS or Linux
+                    os.system("defaults write com.apple.finder AppleShowAllFiles -bool true; killall Finder")
+                elif os_name == "Windows":
+                    os.system('attrib -h *.* /s /d')  # Unhides all files and folders in the directory
+                speak("Files have been unhidden.")
+            except Exception as e:
+                speak(f"Sorry, I couldn't unhide the files. Error: {e}")
 
 
 speak("Sir do you have any more work for me?")

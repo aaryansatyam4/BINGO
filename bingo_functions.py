@@ -1,35 +1,34 @@
 import time
-
 import pyautogui
 import pyttsx3
 import speech_recognition as sr
 import os
-from datetime import datetime, timedelta
-import cv2
+from datetime import datetime
 import spotipy
-from exceptiongroup import catch
 from spotipy.oauth2 import SpotifyOAuth
 import webbrowser
-from requests import get
-import wikipedia
-from sympy.polys.polyconfig import query
-from wikipedia.exceptions import DisambiguationError, PageError
 import pywhatkit as kit
 import pandas as pd
 import requests
 import random
-import smtplib
-import tkinter as tk
-from tkinter import filedialog
-from email.mime.multipart import MIMEMultipart
-from email.mime.text import MIMEText
-from email.mime.base import MIMEBase
-from email import encoders
 from dotenv import load_dotenv
 from instabot import Bot
-import instadownloader
 import instaloader
-#
+import pdfplumber
+import docx
+import matplotlib.pyplot as plt
+from pptx import Presentation
+from collections import Counter
+from nltk.tokenize import sent_tokenize
+from nltk.corpus import stopwords
+from nltk.probability import FreqDist
+import nltk
+
+
+nltk.download('punk')
+nltk.download('stopwords')
+nltk.download('punkt_tab')
+
 load_dotenv()
 
 SPOTIPY_CLIENT_ID = os.getenv("SPOTIPY_CLIENT_ID")
@@ -276,3 +275,83 @@ def take_screenshot():
     screenshot.save(filename)
     speak(f"Screenshot taken and saved as {filename}")
     print(f"Screenshot saved as {filename}")
+
+
+# Summarization and Text Analysis
+def summarize_text(text: str) -> dict:
+    sentences = sent_tokenize(text)
+    word_count = len(text.split())
+    stop_words = set(stopwords.words("english"))
+    words = [word for word in text.split() if word.lower() not in stop_words]
+    freq_dist = FreqDist(words)
+    most_common_words = freq_dist.most_common(10)
+    summary = " ".join(sentences[:3]) if len(sentences) > 3 else text
+    return {
+        'summary': summary,
+        'total_words': word_count,
+        'most_common_words': most_common_words
+    }
+
+def analyze_csv(file_path: str) -> dict:
+    df = pd.read_csv(file_path)
+    numeric_columns = df.select_dtypes(include='number').columns
+    text = "CSV Analysis: Contains {} rows and {} columns. Numerical columns are {}.".format(df.shape[0], df.shape[1], ", ".join(numeric_columns))
+    for col in numeric_columns:
+        plt.figure()
+        df[col].hist()
+        plt.title(f'Histogram of {col}')
+        plt.xlabel(col)
+        plt.ylabel('Frequency')
+        plt.show()
+    return {
+        'summary': text,
+        'numeric_description': df.describe().to_dict()
+    }
+
+def read_txt(file_path: str) -> str:
+    with open(file_path, 'r') as file:
+        return file.read()
+
+def read_pdf(file_path: str) -> str:
+    text = ""
+    with pdfplumber.open(file_path) as pdf:
+        for page in pdf.pages:
+            text += page.extract_text() or ""
+    return text
+
+def read_docx(file_path: str) -> str:
+    doc = docx.Document(file_path)
+    return " ".join([para.text for para in doc.paragraphs])
+
+def read_pptx(file_path: str) -> str:
+    text = ""
+    presentation = Presentation(file_path)
+    for slide in presentation.slides:
+        for shape in slide.shapes:
+            if shape.has_text_frame:
+                text += shape.text_frame.text + " "
+    return text
+
+
+def analyze_file(file_path: str) -> dict:
+    extension = os.path.splitext(file_path)[1].lower()
+    if extension == '.txt':
+        text = read_txt(file_path)
+        analysis_results = summarize_text(text)
+    elif extension == '.pdf':
+        text = read_pdf(file_path)
+        analysis_results = summarize_text(text)
+    elif extension == '.docx':
+        text = read_docx(file_path)
+        analysis_results = summarize_text(text)
+    elif extension == '.csv':
+        analysis_results = analyze_csv(file_path)
+    elif extension == '.pptx':
+        text = read_pptx(file_path)
+        analysis_results = summarize_text(text)
+    else:
+        raise ValueError(f"Unsupported file extension: {extension}")
+
+
+    return analysis_results
+
